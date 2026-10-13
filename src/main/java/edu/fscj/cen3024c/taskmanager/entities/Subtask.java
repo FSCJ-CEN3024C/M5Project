@@ -1,8 +1,3 @@
-// Subtask.java
-// D. Singletary
-// 9/10/25
-// Subtask entity for task manager application
-
 package edu.fscj.cen3024c.taskmanager.entities;
 
 import edu.fscj.cen3024c.taskmanager.enums.SubtaskStatus;
@@ -21,7 +16,7 @@ public class Subtask {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private SubtaskStatus status = SubtaskStatus.PENDING; // default
+    private SubtaskStatus status;
 
     @ManyToOne
     @JoinColumn(name = "task_id", nullable = false)
@@ -30,22 +25,41 @@ public class Subtask {
     // Constructors
     public Subtask() {}
 
-    public Subtask(String title, SubtaskStatus status, Task task) {
+    public Subtask(String title, SubtaskStatus status) {
         this.title = title;
         this.status = status;
-        this.task = task;
     }
 
     // Getters & setters
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
+    public Integer getId() {
+        return id;
+    }
 
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
+    public void setId(Integer id) {
+        this.id = id;
+    }
 
-    public SubtaskStatus getStatus() { return status; }
-    public void setStatus(SubtaskStatus status) { this.status = status; }
+    public String getTitle() {
+        return title;
+    }
 
-    public Task getTask() { return task; }
-    public void setTask(Task task) { this.task = task; }
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public SubtaskStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(SubtaskStatus status) {
+        this.status = status;
+    }
+
+    public Task getTask() {
+        return task;
+    }
+
+    public void setTask(Task task) {
+        this.task = task;
+    }
 }

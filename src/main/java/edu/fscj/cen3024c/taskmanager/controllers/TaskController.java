@@ -1,58 +1,54 @@
-// TaskController.java
-// D. Singletary
-// 11/20/25
-// Task controller for task manager application
-
 package edu.fscj.cen3024c.taskmanager.controllers;
 
-import edu.fscj.cen3024c.taskmanager.dto.CreateTaskRequestDTO;
-import edu.fscj.cen3024c.taskmanager.dto.TaskDTO;
-import edu.fscj.cen3024c.taskmanager.dto.UpdateTaskRequestDTO;
-import edu.fscj.cen3024c.taskmanager.entities.Priority;
-import edu.fscj.cen3024c.taskmanager.exceptions.PriorityNotFoundException;
-import edu.fscj.cen3024c.taskmanager.repositories.PriorityRepository;
+import edu.fscj.cen3024c.taskmanager.entities.Task;
 import edu.fscj.cen3024c.taskmanager.services.TaskService;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import edu.fscj.cen3024c.taskmanager.dto.TaskDTO;
+import edu.fscj.cen3024c.taskmanager.entities.User;
+import edu.fscj.cen3024c.taskmanager.repositories.UserRepository;
+import edu.fscj.cen3024c.taskmanager.repositories.TaskRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @RestController
 @RequestMapping("/tasks")
 public class TaskController {
-
     @Autowired
     private TaskService taskService;
 
     @Autowired
-    private PriorityRepository priorityRepository;
+    private TaskRepository taskRepository;
 
-    // ===== READ endpoints return DTOs =====
+    @Autowired
+    private UserRepository userRepository;
 
     @GetMapping
     public List<TaskDTO> getAllTasks() {
-        return taskService.findAll();
+        return taskService.findAllDTOs();
     }
 
     @GetMapping("/{id}")
     public TaskDTO getTaskById(@PathVariable Integer id) {
-        return taskService.findById(id);
+        return taskService.findDTOById(id);
     }
 
-    // ===== WRITE endpoints accept DTOs and return DTOs =====
-
     @PostMapping
-    public TaskDTO createTask(@Valid @RequestBody CreateTaskRequestDTO request) {
-        Priority priority = resolvePriority(request.getPriorityId());
-        return taskService.createTask(request, priority);
+    public Task createTask(@RequestBody Task task) {
+        return taskService.save(task);
     }
 
     @PutMapping("/{id}")
-    public TaskDTO updateTask(@PathVariable Integer id, @Valid @RequestBody UpdateTaskRequestDTO request) {
-        Priority priority = resolvePriority(request.getPriorityId());
-        return taskService.updateTask(id, request, priority);
+    public Task updateTask(@PathVariable Integer id, @RequestBody Task task) {
+        Task existingTask = taskService.findById(id);
+        existingTask.setTitle(task.getTitle());
+        existingTask.setDescription(task.getDescription());
+        existingTask.setStatus(task.getStatus());
+        existingTask.setDueDate(task.getDueDate());
+        return taskService.save(existingTask);
     }
 
     @DeleteMapping("/{id}")
@@ -60,20 +56,24 @@ public class TaskController {
         taskService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
-
-    // ===== Associate a User with a Task =====
     @PostMapping("/{taskId}/users/{userId}")
-    public ResponseEntity<Void> assignUserToTask(@PathVariable Integer taskId,
-                                                 @PathVariable Integer userId) {
-        taskService.assignUserToTask(taskId, userId);
-        return ResponseEntity.ok().build();
-    }
+    @Transactional
+    public ResponseEntity<Void> assignUserToTask(
+            @PathVariable Integer taskId,
+            @PathVariable Integer userId) {
 
-    private Priority resolvePriority(Integer priorityId) {
-        if (priorityId == null) {
-            return null;
-        }
-        return priorityRepository.findById(priorityId)
-                .orElseThrow(() -> new PriorityNotFoundException(priorityId));
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Task not found"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "User not found"));
+
+        task.getUsers().add(user);
+
+        taskRepository.save(task);
+
+        return ResponseEntity.noContent().build();
     }
 }
