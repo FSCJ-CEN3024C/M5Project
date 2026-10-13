@@ -1,15 +1,9 @@
-// User.java
-// D. Singletary
-// 9/10/25
-// User entity for task manager application
-
 package edu.fscj.cen3024c.taskmanager.entities;
-
 import jakarta.persistence.*;
 import java.util.Set;
 
 @Entity
-@Table(name = "users") // avoid 'user' in postgreSQL
+@Table(name = "users")
 public class User {
 
     @Id
@@ -25,24 +19,44 @@ public class User {
     @ManyToMany(mappedBy = "users")
     private Set<Task> tasks;
 
-    // Constructors
-    public User() {}
 
+public User() {}
     public User(String username, String password) {
         this.username = username;
         this.password = password;
     }
 
     // Getters & setters
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
+    public Integer getId() {
+        return id;
+    }
 
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
+    public void setId(Integer id) {
+        this.id = id;
+    }
 
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
+    public String getUsername() {
+        return username;
+    }
 
-    public Set<Task> getTasks() { return tasks; }
-    public void setTasks(Set<Task> tasks) { this.tasks = tasks; }
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public Set<Task> getTasks() {
+        return tasks;
+    }
+
+    public void setTasks(Set<Task> tasks) {
+        this.tasks = tasks;
+    }
 }
+

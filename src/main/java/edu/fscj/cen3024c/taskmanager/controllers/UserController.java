@@ -1,16 +1,8 @@
-// UserController.java
-// D. Singletary
-// 11/20/25
-// Controller for User entity, returns DTOs with task titles
 
 package edu.fscj.cen3024c.taskmanager.controllers;
 
-import edu.fscj.cen3024c.taskmanager.dto.CreateUserRequestDTO;
-import edu.fscj.cen3024c.taskmanager.dto.UpdateUserRequestDTO;
 import edu.fscj.cen3024c.taskmanager.dto.UserDTO;
 import edu.fscj.cen3024c.taskmanager.services.UserService;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,10 +12,11 @@ import java.util.List;
 @RequestMapping("/users")
 public class UserController {
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
-    // ===== READ endpoints return DTOs =====
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @GetMapping
     public List<UserDTO> getAllUsers() {
@@ -35,16 +28,16 @@ public class UserController {
         return userService.findById(id);
     }
 
-    // ===== WRITE endpoints accept DTOs and return DTOs =====
-
     @PostMapping
-    public UserDTO createUser(@Valid @RequestBody CreateUserRequestDTO request) {
-        return userService.createUser(request);
+    public UserDTO createUser(@RequestBody UserDTO dto) {
+        return userService.create(dto);
     }
 
     @PutMapping("/{id}")
-    public UserDTO updateUser(@PathVariable Integer id, @Valid @RequestBody UpdateUserRequestDTO request) {
-        return userService.updateUser(id, request);
+    public UserDTO updateUser(
+            @PathVariable Integer id,
+            @RequestBody UserDTO dto) {
+        return userService.update(id, dto);
     }
 
     @DeleteMapping("/{id}")
@@ -53,3 +46,4 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 }
+

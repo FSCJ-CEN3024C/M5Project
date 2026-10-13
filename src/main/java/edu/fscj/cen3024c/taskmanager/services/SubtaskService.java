@@ -1,115 +1,98 @@
-// SubtaskService.java
-// D. Singletary
-// 11/20/25
-// Subtask service for task manager application
-
 package edu.fscj.cen3024c.taskmanager.services;
 
-import edu.fscj.cen3024c.taskmanager.dto.CreateSubtaskRequestDTO;
 import edu.fscj.cen3024c.taskmanager.dto.SubtaskDTO;
-import edu.fscj.cen3024c.taskmanager.dto.UpdateSubtaskRequestDTO;
 import edu.fscj.cen3024c.taskmanager.entities.Subtask;
 import edu.fscj.cen3024c.taskmanager.entities.Task;
-import edu.fscj.cen3024c.taskmanager.exceptions.SubtaskNotFoundException;
-import edu.fscj.cen3024c.taskmanager.exceptions.TaskNotFoundException;
+import edu.fscj.cen3024c.taskmanager.enums.SubtaskStatus;
 import edu.fscj.cen3024c.taskmanager.repositories.SubtaskRepository;
 import edu.fscj.cen3024c.taskmanager.repositories.TaskRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class SubtaskService {
 
-    private final SubtaskRepository subtaskRepository;
-    private final TaskRepository taskRepository;
+    @Autowired
+    private SubtaskRepository subtaskRepository;
 
-    public SubtaskService(SubtaskRepository subtaskRepository, TaskRepository taskRepository) {
-        this.subtaskRepository = subtaskRepository;
-        this.taskRepository = taskRepository;
-    }
+    @Autowired
+    private TaskRepository taskRepository;
 
-    // ===== READ =====
-
-    @Transactional(readOnly = true)
-    public List<SubtaskDTO> findAll() {
-        return subtaskRepository.findAll()
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public SubtaskDTO findById(Integer id) {
-        Subtask subtask = subtaskRepository.findById(id)
-                .orElseThrow(() -> new SubtaskNotFoundException(id));
-        return convertToDTO(subtask);
-    }
-
-    @Transactional(readOnly = true)
-    public Subtask findByIdEntity(Integer id) {
-        return subtaskRepository.findById(id)
-                .orElseThrow(() -> new SubtaskNotFoundException(id));
-    }
-
-    // ===== CREATE =====
-
-    @Transactional
-    public SubtaskDTO createSubtask(CreateSubtaskRequestDTO request) {
-
-        Task parentTask = taskRepository.findById(request.getTaskId())
-                .orElseThrow(() -> new TaskNotFoundException(request.getTaskId()));
-
-        Subtask subtask = new Subtask(
-                request.getTitle(),
-                request.getStatus(),   // Enum used directly
-                parentTask
-        );
-
-        Subtask saved = subtaskRepository.save(subtask);
-        return convertToDTO(saved);
-    }
-
-    // ===== UPDATE =====
-
-    @Transactional
-    public SubtaskDTO updateSubtask(Integer id, UpdateSubtaskRequestDTO request) {
-
-        Subtask existing = findByIdEntity(id);
-
-        Task parentTask = taskRepository.findById(request.getTaskId())
-                .orElseThrow(() -> new TaskNotFoundException(request.getTaskId()));
-
-        existing.setTitle(request.getTitle());
-        existing.setStatus(request.getStatus());  // Enum used directly
-        existing.setTask(parentTask);
-
-        Subtask updated = subtaskRepository.save(existing);
-        return convertToDTO(updated);
-    }
-
-    public void deleteById(Integer id) {
-        if (!subtaskRepository.existsById(id)) {
-            throw new SubtaskNotFoundException(id);
-        }
-        subtaskRepository.deleteById(id);
-    }
-
-    // ===== Entity -> DTO =====
-
-    public SubtaskDTO convertToDTO(Subtask subtask) {
-
-        Integer taskId = (subtask.getTask() != null)
+    private SubtaskDTO toDTO(Subtask subtask) {
+        Integer taskId = subtask.getTask() != null
                 ? subtask.getTask().getId()
                 : null;
 
         return new SubtaskDTO(
                 subtask.getId(),
                 subtask.getTitle(),
-                subtask.getStatus().name(),  // Convert enum to String for DTO
+                subtask.getStatus() != null
+                ? subtask.getStatus().name()
+                        : null,
                 taskId
         );
     }
+    @Transactional(readOnly = true)
+    public List<SubtaskDTO> findAllDTOs() {
+        return subtaskRepository.findAll()
+                .stream()
+                .map(this::toDTO)
+                .toList();
+    }
+    @Transactional(readOnly = true)
+    public SubtaskDTO findDTOById(Integer id) {
+        Subtask subtask = subtaskRepository.findById(id)
+                .orElseThrow(()->
+                        new IllegalArgumentException(
+                                "Subtask not found: " + id));
+        return toDTO(subtask);
+    }
+
+    public SubtaskDTO create(SubtaskDTO dto) {
+
+        Subtask subtask = new Subtask();
+        subtask.setTitle(dto.getTitle());
+        subtask.setStatus(
+                SubtaskStatus.valueOf(dto.getStatus()));
+        Task task = taskRepository.findById(dto.getTaskId())
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Task not found: " + dto.getTaskId()));
+
+        subtask.setTask(task);
+        return toDTO(subtaskRepository.save(subtask));
+    }
+    public SubtaskDTO update(Integer id, SubtaskDTO dto) {
+        Subtask subtask = subtaskRepository.findById(id)
+                .orElseThrow(()->
+                        new IllegalArgumentException(
+                                "Subtask not found: " + id
+                        ));
+        subtask.setTitle(dto.getTitle());
+        subtask.setStatus(
+                SubtaskStatus.valueOf(dto.getStatus())
+        );
+        if (dto.getTaskId() != null) {
+            Task task = taskRepository.findById(dto.getTaskId())
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "Task not found: " + dto.getTaskId()
+                            ));
+            subtask.setTask(task);
+        }
+        return toDTO(subtaskRepository.save(subtask));
+    }
+    public void deletebyId(Integer id) {
+        if(!subtaskRepository.existsById(id)) {
+            throw new IllegalArgumentException(
+                    "Subtask not found: " + id
+            );
+        }
+        subtaskRepository.deleteById(id);
+    }
+
 }
